@@ -5,21 +5,48 @@ pool:
   vmImage: 'ubuntu-latest'
 
 stages:
+  # --- STAGE 1: THE CI PHASE ---
   - stage: BuildAndPackage
     displayName: '1. Build & Package'
     jobs:
       - job: PackJob
         steps:
-          # Task 1: Check that our code actually exists on the runner machine
           - script: |
               echo "Starting CI Compilation..."
-              ls -la
-            displayName: 'Verify Repository Files'
+              mkdir -p $(Build.ArtifactStagingDirectory)/site
+              cp index.html $(Build.ArtifactStagingDirectory)/site/
+            displayName: 'Prepare Website Files'
 
-          # Task 2: Take our HTML file and bundle it into an Azure Pipeline Artifact
           - task: PublishPipelineArtifact@1
             displayName: 'Publish Website Output'
             inputs:
-              targetPath: '$(System.DefaultWorkingDirectory)/index.html'
+              targetPath: '$(Build.ArtifactStagingDirectory)/site'
               artifact: 'drop-website'
               publishLocation: 'pipeline'
+
+  # --- STAGE 2: THE CD PHASE ---
+  - stage: DeployToGitHubPages
+    displayName: '2. Deploy to GitHub Pages'
+    dependsOn: BuildAndPackage
+    condition: succeeded()
+    jobs:
+      - job: DeployJob
+        steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download Website Artifact'
+            inputs:
+              artifact: 'drop-website'
+              path: '$(Pipeline.Workspace)/downloaded-site'
+
+          - script: |
+              git config --global user.name "Azure DevOps Pipeline"
+              git config --global user.email "azurepipeline@://azure.com"
+              
+              cd $(Pipeline.Workspace)/downloaded-site
+              git init
+              git add .
+              git commit -m "Automated deployment from Azure Pipeline Run $(Build.BuildId)"
+              
+              # This uses your secret variable to safely log in and deploy your code
+              git push --force https://$(GITHUB_PAT)@://github.com HEAD:gh-pages
+            displayName: 'Push Files to GitHub gh-pages Branch'
