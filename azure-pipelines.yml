@@ -47,6 +47,5 @@ stages:
               git add .
               git commit -m "Automated deployment from Azure Pipeline Run $(Build.BuildId)"
               
-              # This uses your secret variable to safely log in and deploy your code
-              git push --force https://$(GITHUB_PAT)@://github.com HEAD:gh-pages
-            displayName: 'Push Files to GitHub gh-pages Branch'
+              # We use $MAPPED_PAT here instead of the direct variable
+              git push --force https://$MAPPED_PAT@://
