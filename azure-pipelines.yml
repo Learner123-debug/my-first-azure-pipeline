@@ -23,7 +23,6 @@ stages:
               targetPath: '$(Build.ArtifactStagingDirectory)/site'
               artifact: 'drop-website'
               publishLocation: 'pipeline'
-
   # --- STAGE 2: THE CD PHASE ---
   - stage: DeployToGitHubPages
     displayName: '2. Deploy to GitHub Pages'
@@ -38,14 +37,19 @@ stages:
               artifact: 'drop-website'
               path: '$(Pipeline.Workspace)/downloaded-site'
 
-          - script: |
+          - bash: |
               git config --global user.name "Azure DevOps Pipeline"
               git config --global user.email "azurepipeline@://azure.com"
               
               cd $(Pipeline.Workspace)/downloaded-site
               git init
               git add .
-              git commit -m "Automated deployment from Azure Pipeline Run $(Build.BuildId)"
+              git commit -m "Deploy run $(Build.BuildId)"
               
-              # We use $MAPPED_PAT here instead of the direct variable
-              git push --force https://$MAPPED_PAT@://
+              git config --local --unset http.extraheader
+              git push --force https://$(GITHUB_PAT)@://github.com HEAD:gh-pages
+            displayName: 'Push via Assistant Task'
+            env:
+              GITHUB_PAT: $(GITHUB_PAT)
+
+ 
