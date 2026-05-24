@@ -1,0 +1,25 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: BuildAndPackage
+    displayName: '1. Build & Package'
+    jobs:
+      - job: PackJob
+        steps:
+          # Task 1: Check that our code actually exists on the runner machine
+          - script: |
+              echo "Starting CI Compilation..."
+              ls -la
+            displayName: 'Verify Repository Files'
+
+          # Task 2: Take our HTML file and bundle it into an Azure Pipeline Artifact
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish Website Output'
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/index.html'
+              artifact: 'drop-website'
+              publishLocation: 'pipeline'
